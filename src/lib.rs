@@ -76,7 +76,7 @@ impl<R: std::io::Read> Iterator for LogIterator<R> {
     type Item = parse::LogLine;
     fn next(&mut self) -> Option<Self::Item> {
         let line = self.lines.next()?.ok()?;
-        let (remaining, result) = LogLineParser::new().parse(line.trim().to_string()).ok()?;
+        let (remaining, result) = LogLineParser::new().parse(line.trim()).ok()?;
         remaining.trim().is_empty().then_some(result)
     }
 }
@@ -233,14 +233,14 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
             r#"System::Error NetworkError "network interface is down" requestid=1"#.to_string();
 
         // Прогрев глобального singleton, чтобы его первый build не попал в замер.
-        let _ = LOG_LINE_PARSER.parse(line.clone()).ok();
+        let _ = LOG_LINE_PARSER.parse(&line).ok();
 
         // Вариант 1 (cached): парсер собран один раз в глобальном OnceLock,
         //                     N вызовов parse переиспользуют его.
         let t = Instant::now();
         let mut ok1 = 0usize;
         for _ in 0..N {
-            if LOG_LINE_PARSER.parse(line.clone()).is_ok() {
+            if LOG_LINE_PARSER.parse(&line).is_ok() {
                 ok1 += 1;
             }
         }
@@ -253,7 +253,7 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
         let mut ok2 = 0usize;
         for _ in 0..N {
             let p = parse::LogLineParser::new();
-            if p.parse(line.clone()).is_ok() {
+            if p.parse(&line).is_ok() {
                 ok2 += 1;
             }
         }
