@@ -42,13 +42,13 @@ impl<T: std::io::Read + std::fmt::Debug + 'static> MyReader for T {}
 #[derive(Debug)]
 struct LogIterator {
     lines: std::iter::Filter<
-        std::io::Lines<std::io::BufReader<RefMutWrapper<'static, Box<dyn MyReader>>>>,
+        std::io::Lines<std::io::BufReader<Box<dyn MyReader>>>,
         fn(&Result<String, std::io::Error>) -> bool,
     >,
-    reader_rc: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>>,
+    // reader_rc: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>>,
 }
 impl LogIterator {
-    fn new(r: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>>) -> Self {
+    fn new(r: Box<dyn MyReader>) -> Self {
         use std::io::BufRead;
         // подсказка: unsafe избыточен, да и весь rc - тоже
         // примечание автора прототипа:
@@ -57,10 +57,10 @@ impl LogIterator {
         // > Я знаю, что деструкторы полей структуры вызываются в
         // > порядке объявления в структуре - то есть сначала будет удалён
         // > мой RefMutWrapper, а уже потом и весь исходный reader_rc
-        let the_borrow = r.borrow_mut();
-        let the_borrow = unsafe { std::mem::transmute::<_, _>(the_borrow) };
+        // let the_borrow = r.borrow_mut();
+        // let the_borrow = unsafe { std::mem::transmute::<_, _>(the_borrow) };
         Self {
-            lines: std::io::BufReader::with_capacity(4096, RefMutWrapper(the_borrow))
+            lines: std::io::BufReader::with_capacity(4096, r)
                 .lines()
                 .filter(|line_res| {
                     !line_res
@@ -69,7 +69,7 @@ impl LogIterator {
                         .map(|line| line.trim().is_empty())
                         .unwrap_or(false)
                 }),
-            reader_rc: r,
+            // reader_rc: r,
         }
     }
 }
@@ -84,11 +84,7 @@ impl Iterator for LogIterator {
 
 // подсказка: RefCell вообще не нужен
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
-pub fn read_log(
-    input: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>>,
-    mode: ReadMode,
-    request_ids: Vec<u32>,
-) -> Vec<LogLine> {
+pub fn read_log(input: Box<dyn MyReader>, mode: ReadMode, request_ids: Vec<u32>) -> Vec<LogLine> {
     let logs = LogIterator::new(input);
     logs.filter(|log| {
         (request_ids.is_empty() || request_ids.contains(&log.request_id))
@@ -191,15 +187,11 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
 
     #[test]
     fn test_all() {
-        let refcell1: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>> =
-            std::rc::Rc::new(std::cell::RefCell::new(Box::new(SOURCE1.as_bytes())));
-        assert_eq!(
-            read_log(refcell1.clone(), ReadMode::ReadModeAll, vec![]).len(),
-            1
-        );
-        let refcell: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>> =
-            std::rc::Rc::new(std::cell::RefCell::new(Box::new(SOURCE.as_bytes())));
-        let all_parsed = read_log(refcell.clone(), ReadMode::ReadModeAll, vec![]);
+        let refcell1 = Box::new(SOURCE1.as_bytes());
+        assert_eq!(read_log(refcell1, ReadMode::ReadModeAll, vec![]).len(), 1);
+
+        let refcell = Box::new(SOURCE.as_bytes());
+        let all_parsed = read_log(refcell, ReadMode::ReadModeAll, vec![]);
         println!("all parsed:");
         all_parsed
             .iter()
@@ -215,8 +207,7 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
     // ошибок. Должно было быть `(X || Y) && Z`.
     #[test]
     fn test_errors_with_empty_request_ids() {
-        let refcell: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>> =
-            std::rc::Rc::new(std::cell::RefCell::new(Box::new(SOURCE.as_bytes())));
+        let refcell = Box::new(SOURCE.as_bytes());
         let errors = read_log(refcell, ReadMode::ReadModeErrors, vec![]);
         for log in &errors {
             assert!(
