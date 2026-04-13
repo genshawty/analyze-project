@@ -45,7 +45,6 @@ struct LogIterator {
         std::io::Lines<std::io::BufReader<Box<dyn MyReader>>>,
         fn(&Result<String, std::io::Error>) -> bool,
     >,
-    // reader_rc: std::rc::Rc<std::cell::RefCell<Box<dyn MyReader>>>,
 }
 impl LogIterator {
     fn new(r: Box<dyn MyReader>) -> Self {
@@ -77,7 +76,7 @@ impl Iterator for LogIterator {
     type Item = parse::LogLine;
     fn next(&mut self) -> Option<Self::Item> {
         let line = self.lines.next()?.ok()?;
-        let (remaining, result) = LOG_LINE_PARSER.parse(line.trim().to_string()).ok()?;
+        let (remaining, result) = LogLineParser::new().parse(line.trim().to_string()).ok()?;
         remaining.trim().is_empty().then_some(result)
     }
 }
@@ -221,5 +220,59 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
         }
         // В SOURCE ровно 7 строк с ошибками (requestid=1: 2, requestid=2: 2, requestid=7: 2, requestid=8: 1).
         assert_eq!(errors.len(), 7);
+    }
+
+    // Запускать: cargo test bench_parser_build --release -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn bench_parser_build() {
+        use std::time::Instant;
+
+        const N: usize = 100_000;
+        let line =
+            r#"System::Error NetworkError "network interface is down" requestid=1"#.to_string();
+
+        // Прогрев глобального singleton, чтобы его первый build не попал в замер.
+        let _ = LOG_LINE_PARSER.parse(line.clone()).ok();
+
+        // Вариант 1 (cached): парсер собран один раз в глобальном OnceLock,
+        //                     N вызовов parse переиспользуют его.
+        let t = Instant::now();
+        let mut ok1 = 0usize;
+        for _ in 0..N {
+            if LOG_LINE_PARSER.parse(line.clone()).is_ok() {
+                ok1 += 1;
+            }
+        }
+        let cached = t.elapsed();
+
+        // Вариант 2 (fresh): каждая итерация создаёт новый LogLineParser
+        //                    (пустой OnceLock), первый .parse() строит
+        //                    парсер заново. Это эквивалент Option A.
+        let t = Instant::now();
+        let mut ok2 = 0usize;
+        for _ in 0..N {
+            let p = parse::LogLineParser::new();
+            if p.parse(line.clone()).is_ok() {
+                ok2 += 1;
+            }
+        }
+        let fresh = t.elapsed();
+
+        assert_eq!(ok1, N);
+        assert_eq!(ok2, N);
+
+        let cached_ns = cached.as_nanos() as f64 / N as f64;
+        let fresh_ns = fresh.as_nanos() as f64 / N as f64;
+        let overhead_ns = fresh_ns - cached_ns;
+        let ratio = fresh_ns / cached_ns;
+
+        println!("N = {}", N);
+        println!("cached: {:?} total, {:.1} ns/iter", cached, cached_ns);
+        println!("fresh : {:?} total, {:.1} ns/iter", fresh, fresh_ns);
+        println!(
+            "build-per-call overhead: ~{:.1} ns, fresh is {:.2}x cached",
+            overhead_ns, ratio
+        );
     }
 }
