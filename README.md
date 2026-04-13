@@ -38,8 +38,8 @@ fresh : 833.571917ms total, 833.6 ns/iter
 Изменение парсеров со `String` на `&str`. Изменение выполнено, кстати наглядно на нашем бенчмарке видно отличие:
 
 ```
-N = 100000
-cached: 15.555208ms total, 155.6 ns/iter
-fresh : 19.049041ms total, 190.5 ns/iter
-build-per-call overhead: ~34.9 ns, fresh is 1.22x cached
+N = 1000000
+cached: 139.700458ms total, 139.7 ns/iter
+fresh : 175.077291ms total, 175.1 ns/iter
+build-per-call overhead: ~35.4 ns, fresh is 1.25x cached
 ```

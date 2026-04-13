@@ -191,7 +191,7 @@ App::Journal BuyAsset UserBacket{"user_id":"Alice","backet":Backet{"asset_id":"m
     fn bench_parser_build() {
         use std::time::Instant;
 
-        const N: usize = 100_000;
+        const N: usize = 1_000_000;
         let line =
             r#"System::Error NetworkError "network interface is down" requestid=1"#.to_string();
 
