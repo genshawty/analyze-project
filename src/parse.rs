@@ -42,9 +42,8 @@ mod stdp {
             // подсказка: вместо if можно использовать tight-тип std::num::NonZeroU32
             //            (ограничиться NonZeroU32::new(value).ok_or(()).get() - норм)
             //            или даже заиспользовать tightness
-            if value == 0 {
-                return Err(()); // в наших логах нет нулей, ноль в операции - фикция
-            }
+            std::num::NonZeroU32::new(value).ok_or(())?;
+
             Ok((remaining[end_idx..].to_string(), value))
         }
     }
@@ -60,9 +59,8 @@ mod stdp {
                 .find_map(|(idx, c)| (!c.is_ascii_digit()).then_some(idx))
                 .unwrap_or(input.len());
             let value = input[..end_idx].parse().map_err(|_| ())?;
-            if value == 0 {
-                return Err(()); // в наших логах нет нулей, ноль в операции - фикция
-            }
+            std::num::NonZeroI32::new(value).ok_or(())?;
+
             Ok((input[end_idx..].to_string(), value))
         }
     }
