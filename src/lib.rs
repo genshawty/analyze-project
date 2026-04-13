@@ -2,14 +2,6 @@ pub mod parse;
 use parse::*;
 use strum_macros;
 
-// // подсказка: лучше использовать enum и match
-// /// Режим чтения из логов всего подряд
-// pub const READ_MODE_ALL: u8 = 0;
-// /// Режим чтения из логов только ошибок
-// pub const READ_MODE_ERRORS: u8 = 1;
-// /// Режим чтения из логов только операций, касающихся деген
-// pub const READ_MODE_EXCHANGES: u8 = 2;
-
 #[derive(strum_macros::Display)]
 pub enum ReadMode {
     #[strum(to_string = "READ_MODE_ALL")]
@@ -20,24 +12,6 @@ pub enum ReadMode {
     ReadModeExchanges,
 }
 
-/// Обёртка, без которой не выполнено требование `std::io::BufReader<T: std::io::Read>`
-// #[derive(Debug)]
-// struct RefMutWrapper<'a, T>(std::cell::RefMut<'a, T>);
-// impl<'a, T> std::io::Read for RefMutWrapper<'a, T>
-// where
-//     T: std::io::Read,
-// {
-//     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-//         self.0.read(buf)
-//     }
-// }
-
-/// Для `Box<dyn много трейтов, помимо auto-трейтов>`, (`rustc E0225`)
-/// `only auto traits can be used as additional traits in a trait object`
-/// `consider creating a new trait with all of these as supertraits and using that trait here instead`
-// pub trait MyReader: std::io::Read + std::fmt::Debug + 'static {}
-// impl<T: std::io::Read + std::fmt::Debug + 'static> MyReader for T {}
-// подсказка: вместо trait-объекта можно дженерик
 /// Итератор, на выходе которого - строки распарсенной структуры данных
 #[derive(Debug)]
 struct LogIterator<R: std::io::Read> {
@@ -49,15 +23,6 @@ struct LogIterator<R: std::io::Read> {
 impl<R: std::io::Read> LogIterator<R> {
     fn new(r: R) -> Self {
         use std::io::BufRead;
-        // подсказка: unsafe избыточен, да и весь rc - тоже
-        // примечание автора прототипа:
-        // > Мотивация: хочу позаимствовать RefCell,
-        // > но боюсь, что Rc протухнет - поэтому буду хранить и Rc и RefMut.
-        // > Я знаю, что деструкторы полей структуры вызываются в
-        // > порядке объявления в структуре - то есть сначала будет удалён
-        // > мой RefMutWrapper, а уже потом и весь исходный reader_rc
-        // let the_borrow = r.borrow_mut();
-        // let the_borrow = unsafe { std::mem::transmute::<_, _>(the_borrow) };
         Self {
             lines: std::io::BufReader::with_capacity(4096, r)
                 .lines()
@@ -68,7 +33,6 @@ impl<R: std::io::Read> LogIterator<R> {
                         .map(|line| line.trim().is_empty())
                         .unwrap_or(false)
                 }),
-            // reader_rc: r,
         }
     }
 }
@@ -81,7 +45,6 @@ impl<R: std::io::Read> Iterator for LogIterator<R> {
     }
 }
 
-// подсказка: RefCell вообще не нужен
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
 pub fn read_log<R: std::io::Read>(input: R, mode: ReadMode, request_ids: Vec<u32>) -> Vec<LogLine> {
     let logs = LogIterator::new(input);
