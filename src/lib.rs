@@ -35,19 +35,19 @@ pub enum ReadMode {
 /// Для `Box<dyn много трейтов, помимо auto-трейтов>`, (`rustc E0225`)
 /// `only auto traits can be used as additional traits in a trait object`
 /// `consider creating a new trait with all of these as supertraits and using that trait here instead`
-pub trait MyReader: std::io::Read + std::fmt::Debug + 'static {}
-impl<T: std::io::Read + std::fmt::Debug + 'static> MyReader for T {}
+// pub trait MyReader: std::io::Read + std::fmt::Debug + 'static {}
+// impl<T: std::io::Read + std::fmt::Debug + 'static> MyReader for T {}
 // подсказка: вместо trait-объекта можно дженерик
 /// Итератор, на выходе которого - строки распарсенной структуры данных
 #[derive(Debug)]
-struct LogIterator {
+struct LogIterator<R: std::io::Read> {
     lines: std::iter::Filter<
-        std::io::Lines<std::io::BufReader<Box<dyn MyReader>>>,
+        std::io::Lines<std::io::BufReader<R>>,
         fn(&Result<String, std::io::Error>) -> bool,
     >,
 }
-impl LogIterator {
-    fn new(r: Box<dyn MyReader>) -> Self {
+impl<R: std::io::Read> LogIterator<R> {
+    fn new(r: R) -> Self {
         use std::io::BufRead;
         // подсказка: unsafe избыточен, да и весь rc - тоже
         // примечание автора прототипа:
@@ -72,7 +72,7 @@ impl LogIterator {
         }
     }
 }
-impl Iterator for LogIterator {
+impl<R: std::io::Read> Iterator for LogIterator<R> {
     type Item = parse::LogLine;
     fn next(&mut self) -> Option<Self::Item> {
         let line = self.lines.next()?.ok()?;
@@ -83,7 +83,7 @@ impl Iterator for LogIterator {
 
 // подсказка: RefCell вообще не нужен
 /// Принимает поток байт, отдаёт отфильтрованные и распарсенные логи
-pub fn read_log(input: Box<dyn MyReader>, mode: ReadMode, request_ids: Vec<u32>) -> Vec<LogLine> {
+pub fn read_log<R: std::io::Read>(input: R, mode: ReadMode, request_ids: Vec<u32>) -> Vec<LogLine> {
     let logs = LogIterator::new(input);
     logs.filter(|log| {
         (request_ids.is_empty() || request_ids.contains(&log.request_id))
