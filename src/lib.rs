@@ -21,16 +21,16 @@ pub enum ReadMode {
 }
 
 /// Обёртка, без которой не выполнено требование `std::io::BufReader<T: std::io::Read>`
-#[derive(Debug)]
-struct RefMutWrapper<'a, T>(std::cell::RefMut<'a, T>);
-impl<'a, T> std::io::Read for RefMutWrapper<'a, T>
-where
-    T: std::io::Read,
-{
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.0.read(buf)
-    }
-}
+// #[derive(Debug)]
+// struct RefMutWrapper<'a, T>(std::cell::RefMut<'a, T>);
+// impl<'a, T> std::io::Read for RefMutWrapper<'a, T>
+// where
+//     T: std::io::Read,
+// {
+//     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+//         self.0.read(buf)
+//     }
+// }
 
 /// Для `Box<dyn много трейтов, помимо auto-трейтов>`, (`rustc E0225`)
 /// `only auto traits can be used as additional traits in a trait object`
