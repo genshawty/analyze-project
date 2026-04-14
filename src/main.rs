@@ -54,7 +54,8 @@ fn main() {
     let parsing_demo =
         r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#
             .to_string();
-    let announcements = analysis::parse::just_parse_anouncements(&parsing_demo).unwrap();
+    let announcements =
+        analysis::parse::just_parse_anouncements(&parsing_demo).expect("error demo parsing");
     println!("demo-parsed: {:?}", announcements);
 
     let args = std::env::args().collect::<Vec<_>>();
@@ -62,9 +63,11 @@ fn main() {
     println!(
         "Trying opening file '{}' from directory '{}'",
         filename,
-        std::env::current_dir().unwrap().to_string_lossy()
+        std::env::current_dir()
+            .expect("invalid cwd")
+            .to_string_lossy()
     );
-    let file = std::fs::File::open(filename).unwrap();
+    let file = std::fs::File::open(filename).expect("error opening file");
 
     let logs = analysis::read_log(file, analysis::ReadMode::ReadModeAll, vec![]);
     println!("got logs:");
