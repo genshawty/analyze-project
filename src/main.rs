@@ -14,6 +14,8 @@
 //  -- по ошибкам
 //  -- по изменению счёта (купить/продать)
 
+use analysis::parse::Announcements;
+
 // Модель данных:
 // - Пользователь (userid, имя)
 // - Вещи
@@ -55,7 +57,7 @@ fn main() {
         r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#
             .to_string();
     let announcements =
-        analysis::parse::just_parse_anouncements(&parsing_demo).expect("error demo parsing");
+        analysis::parse::just_parse::<Announcements>(&parsing_demo).expect("error demo parsing");
     println!("demo-parsed: {:?}", announcements);
 
     let args = std::env::args().collect::<Vec<_>>();

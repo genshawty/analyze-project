@@ -943,29 +943,34 @@ impl Parsable for Announcements {
 // просто обёртки
 // подсказка: почему бы не заменить на один дженерик?
 /// Обёртка для парсинга [AssetDsc]
-pub fn just_parse_asset_dsc<'a>(input: &'a str) -> Result<(&'a str, AssetDsc), ()> {
-    <AssetDsc as Parsable>::parser().parse(input)
+#[allow(private_bounds)]
+pub fn just_parse<'a, T: Parsable>(input: &'a str) -> Result<(&'a str, T), ()> {
+    <T as Parsable>::parser().parse(input)
 }
-/// Обёртка для парсинга [Backet]
-pub fn just_parse_backet<'a>(input: &'a str) -> Result<(&'a str, Backet), ()> {
-    <Backet as Parsable>::parser().parse(input)
-}
-/// Обёртка для парсинга [UserCash]
-pub fn just_user_cash<'a>(input: &'a str) -> Result<(&'a str, UserCash), ()> {
-    <UserCash as Parsable>::parser().parse(input)
-}
-/// Обёртка для парсинга [UserBacket]
-pub fn just_user_backet<'a>(input: &'a str) -> Result<(&'a str, UserBacket), ()> {
-    <UserBacket as Parsable>::parser().parse(input)
-}
-/// Обёртка для парсинга [UserBackets]
-pub fn just_user_backets<'a>(input: &'a str) -> Result<(&'a str, UserBackets), ()> {
-    <UserBackets as Parsable>::parser().parse(input)
-}
-/// Обёртка для парсинга [Announcements]
-pub fn just_parse_anouncements<'a>(input: &'a str) -> Result<(&'a str, Announcements), ()> {
-    <Announcements as Parsable>::parser().parse(input)
-}
+
+// pub fn just_parse_asset_dsc<'a>(input: &'a str) -> Result<(&'a str, AssetDsc), ()> {
+//     <AssetDsc as Parsable>::parser().parse(input)
+// }
+// /// Обёртка для парсинга [Backet]
+// pub fn just_parse_backet<'a>(input: &'a str) -> Result<(&'a str, Backet), ()> {
+//     <Backet as Parsable>::parser().parse(input)
+// }
+// /// Обёртка для парсинга [UserCash]
+// pub fn just_user_cash<'a>(input: &'a str) -> Result<(&'a str, UserCash), ()> {
+//     <UserCash as Parsable>::parser().parse(input)
+// }
+// /// Обёртка для парсинга [UserBacket]
+// pub fn just_user_backet<'a>(input: &'a str) -> Result<(&'a str, UserBacket), ()> {
+//     <UserBacket as Parsable>::parser().parse(input)
+// }
+// /// Обёртка для парсинга [UserBackets]
+// pub fn just_user_backets<'a>(input: &'a str) -> Result<(&'a str, UserBackets), ()> {
+//     <UserBackets as Parsable>::parser().parse(input)
+// }
+// /// Обёртка для парсинга [Announcements]
+// pub fn just_parse_anouncements<'a>(input: &'a str) -> Result<(&'a str, Announcements), ()> {
+//     <Announcements as Parsable>::parser().parse(input)
+// }
 
 /// Все виды логов
 #[derive(Debug, Clone, PartialEq)]
