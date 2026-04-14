@@ -1355,7 +1355,7 @@ impl Parsable for AppLogJournalKind {
                 ),
                 map(
                     preceded(strip_whitespace(tag("WithdrawCash")), UserCash::parser()),
-                    |user_cash| AppLogJournalKind::DepositCash(user_cash),
+                    |user_cash| AppLogJournalKind::WithdrawCash(user_cash),
                 ),
                 map(
                     preceded(strip_whitespace(tag("BuyAsset")), UserBacket::parser()),
