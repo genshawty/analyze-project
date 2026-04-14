@@ -14,7 +14,10 @@
 //  -- по ошибкам
 //  -- по изменению счёта (купить/продать)
 
+use std::path::PathBuf;
+
 use analysis::parse::Announcements;
+use analysis::{ReadMode, read_log};
 
 // Модель данных:
 // - Пользователь (userid, имя)
@@ -50,28 +53,45 @@ use analysis::parse::Announcements;
 //  -- Error
 //   --- нет сети
 //   --- отказано в доступе
-fn main() {
+const PARSING_DEMO: &str =
+    r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#;
+
+fn main() -> std::process::ExitCode {
     println!("Placeholder для экспериментов с cli");
 
-    let parsing_demo =
-        r#"[UserBackets{"user_id":"Bob","backets":[Backet{"asset_id":"milk","count":3,},],},]"#
-            .to_string();
-    let announcements =
-        analysis::parse::just_parse::<Announcements>(&parsing_demo).expect("error demo parsing");
-    println!("demo-parsed: {:?}", announcements);
+    let announcements = match analysis::parse::just_parse::<Announcements>(PARSING_DEMO) {
+        Ok(a) => a,
+        Err(e) => {
+            eprintln!("demo parse failed: {e:?}");
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+    println!("demo-parsed: {announcements:?}");
 
-    let args = std::env::args().collect::<Vec<_>>();
-    let filename = args[1].clone();
+    let Some(filename) = std::env::args_os().nth(1).map(PathBuf::from) else {
+        eprintln!("usage: analysis <logfile>");
+        return std::process::ExitCode::FAILURE;
+    };
+
+    let cwd = std::env::current_dir().expect("invalid cwd");
     println!(
         "Trying opening file '{}' from directory '{}'",
-        filename,
-        std::env::current_dir()
-            .expect("invalid cwd")
-            .to_string_lossy()
+        filename.display(),
+        cwd.display()
     );
-    let file = std::fs::File::open(filename).expect("error opening file");
 
-    let logs = analysis::read_log(file, analysis::ReadMode::ReadModeAll, vec![]);
+    let file = match std::fs::File::open(&filename) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("failed to open {}: {e}", filename.display());
+            return std::process::ExitCode::FAILURE;
+        }
+    };
+
     println!("got logs:");
-    logs.iter().for_each(|parsed| println!("  {:?}", parsed));
+    for log in read_log(file, ReadMode::ReadModeAll, vec![]) {
+        println!("  {log:?}");
+    }
+
+    std::process::ExitCode::SUCCESS
 }
